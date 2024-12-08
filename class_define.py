@@ -27,6 +27,9 @@ class Liquid:
         if not isinstance(other,Liquid):
             raise TypeError(f"Liquid can't compare with {type(other)}")
         return self.color == other.color
+    
+    def __ne__(self,other) -> bool:
+        return not (self == other)
 
 class Tube:
     __slots__ = ["liquid","empty"]
@@ -70,3 +73,17 @@ class Tube:
             other.liquid.append(self.liquid.pop())
             self.empty += 1
             other.empty -= 1
+
+    def is_empty(self) -> bool:
+        return (self.empty == 4)
+    
+    def is_full(self) -> bool:
+        return not self.is_empty()
+    
+    def is_finished(self) -> bool:
+        if not self.is_full():
+            return False
+        for each in self.liquid:
+            if each != self.liquid[0]:
+                return False
+        return True
