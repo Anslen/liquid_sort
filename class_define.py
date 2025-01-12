@@ -1,3 +1,6 @@
+from random import randint
+from random import shuffle
+
 class Color:
     __slots__ = ["data"]
     def __init__(self,color:int):
@@ -32,28 +35,37 @@ class Liquid:
         return not (self == other)
 
 class Tube:
-    __slots__ = ["liquid","empty"]
-    def __init__(self,liquid:list[Liquid|int]):
+    __slots__ = ["liquid","liquid_count"]
+    def __init__(self,liquid:list[Liquid|int] = []):
+        '''Create a tube with liquid'''
+        if len(liquid) == 0:
+            liquid = []
         for i in range(len(liquid)):
-            if not isinstance(liquid[i],Color):
+            if not isinstance(liquid[i],(Liquid,int)):
+                raise TypeError(f"Tube must be init with list of Liquid or int, but get {liquid[i]}")
+            
+            if isinstance(liquid[i],int):
                 liquid[i] = Liquid(liquid[i])
                 
         self.liquid = liquid
-        self.empty = 4 - len(liquid)
+        self.liquid_count = len(liquid)
 
     def __setattr__(self, name, value):
         if(name == "liquid"):
             if not isinstance(value,list):
                 raise TypeError(f"Liquid of tube musted be list, but {type(value)}")
+            for each in value:
+                if not isinstance(each,Liquid):
+                    raise TypeError(f"Liquid of tube musted be list of liquid, but {type(each)}")
             if len(value) > 4:
                 raise ValueError(f"Tube have max four liquid, but given {len(value)}")
             super().__setattr__(name,value)
         
-        elif(name == "empty"):
+        elif(name == "liquid_count"):
             if not isinstance(value,int):
-                raise TypeError(f"Empty of tube musted be int, but{type(value)}")
+                raise TypeError(f"Liquid_count of tube musted be int, but{type(value)}")
             if(value < 0 or value > 4):
-                raise ValueError(f"Empty of tube must between 0 to 4, but{value}")
+                raise ValueError(f"Liquid_count of tube must between 0 to 4, but{value}")
             super().__setattr__(name,value)
 
     def __repr__(self):
@@ -69,21 +81,79 @@ class Tube:
         if not isinstance(other,Tube):
             raise TypeError(f"Tube can't add with {type(other)}")
         
-        while (self.empty < 4) and (other.empty > 0) and (self[-1] == other[-1]):
+        if(self.is_empty()):
+            return
+        
+        if(other.is_empty()):
             other.liquid.append(self.liquid.pop())
-            self.empty += 1
-            other.empty -= 1
+            self.liquid_count -= 1
+            other.liquid_count += 1
+        
+        while (not self.is_empty()) and (not other.is_full()) and (self[-1] == other[-1]):
+            other.liquid.append(self.liquid.pop())
+            self.liquid_count -= 1
+            other.liquid_count += 1
 
     def is_empty(self) -> bool:
-        return (self.empty == 4)
+        return (self.liquid_count == 0)
     
     def is_full(self) -> bool:
-        return not self.is_empty()
+        return (self.liquid_count == 4)
     
     def is_finished(self) -> bool:
+        if self.is_empty():
+            return True
         if not self.is_full():
             return False
         for each in self.liquid:
             if each != self.liquid[0]:
+                return False
+        return True
+    
+class Scence:
+    __slots__ = ["tubes","tube_num"]
+    def __init__(self,num:int):
+        '''Create a scence with num tubes'''
+        if not isinstance(num,int):
+            raise TypeError(f"Scence musted be init with int, but {type(num)}")
+        if num < 3:
+            raise ValueError(f"Scence musted be init with number bigger than 2, but {num}")
+        
+        self.tube_num = num
+        liquid_squence = list()
+        for i in range(num - 2):
+            liquid_squence.extend([i for j in range(4)])
+        shuffle(liquid_squence)
+        self.tubes = list()
+        for i in range(num - 2):
+            self.tubes.append(Tube(liquid_squence[i*4:i*4+4]))
+        self.tubes.append(Tube())
+        self.tubes.append(Tube())
+
+
+    def __repr__(self):
+        result = ""
+        count = 0
+        for each in self.tubes:
+            result += f"{count}: {each}\n"
+            count += 1
+        return result
+
+    def solution(self):
+        '''Return the solution of the scence'''
+        pass
+
+    def move(self,source:int,dest:int):
+        '''Move liquid from souce tube to dest tube'''
+        if not isinstance(source,int) or not isinstance(dest,int):
+            raise TypeError(f"Source and dest must be int, but {type(source)} and {type(dest)}")
+        if source < 0 or source >= self.tube_num or dest < 0 or dest >= self.tube_num:
+            raise ValueError(f"Source and dest must between 0 to {self.tube_num - 1}, but {source} and {dest}")
+        self.tubes[source] + self.tubes[dest]
+
+    def is_finished(self) -> bool:
+        '''Return True if the scence is finished'''
+        for each in self.tubes:
+            if not each.is_finished():
                 return False
         return True
