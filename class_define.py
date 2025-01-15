@@ -78,22 +78,27 @@ class Tube:
     def __getitem__(self,index:int):
         return self.liquid[index]
 
-    def __add__(self,other) -> None:
+    def __add__(self,other) -> int:
+        '''Return number of moved liquid'''
         if not isinstance(other,Tube):
             raise TypeError(f"Tube can't add with {type(other)}")
         
         if(self.is_empty()):
-            return
+            return 0
         
+        ret = 0
         if(other.is_empty()):
             other.liquid.append(self.liquid.pop())
             self.liquid_count -= 1
             other.liquid_count += 1
+            ret += 1
         
         while (not self.is_empty()) and (not other.is_full()) and (self[-1] == other[-1]):
             other.liquid.append(self.liquid.pop())
             self.liquid_count -= 1
             other.liquid_count += 1
+            ret += 1
+        return ret
 
     def is_empty(self) -> bool:
         return (self.liquid_count == 0)
@@ -112,7 +117,7 @@ class Tube:
         return True
     
 class Scence:
-    __slots__ = ["tubes","tube_num"]
+    __slots__ = ["tubes","tube_num","history","squence"]
     def __init__(self,num:int):
         '''Create a scence with num tubes'''
         if not isinstance(num,int):
@@ -121,16 +126,24 @@ class Scence:
             raise ValueError(f"Scence musted be init with number bigger than 2, but {num}")
         
         self.tube_num = num
-        liquid_squence = list()
+        self.squence = list()
         for i in range(num - 2):
-            liquid_squence.extend([i for j in range(4)])
-        shuffle(liquid_squence)
+            self.squence.extend([i for j in range(4)])
+        shuffle(self.squence)
+        self.set_tubes()
+
+        self.history = list()
+
+    def set_tubes(self):
         self.tubes = list()
-        for i in range(num - 2):
-            self.tubes.append(Tube(liquid_squence[i*4:i*4+4]))
+        for i in range(self.tube_num - 2):
+            self.tubes.append(Tube(self.squence[i*4:i*4+4]))
         self.tubes.append(Tube())
         self.tubes.append(Tube())
 
+    def replay(self):
+        self.set_tubes()
+        self.history = ()
 
     def __repr__(self):
         result = ""
@@ -150,7 +163,22 @@ class Scence:
             raise TypeError(f"Source and dest must be int, but {type(source)} and {type(dest)}")
         if source < 0 or source >= self.tube_num or dest < 0 or dest >= self.tube_num:
             raise ValueError(f"Source and dest must between 0 to {self.tube_num - 1}, but {source} and {dest}")
-        self.tubes[source] + self.tubes[dest]
+        move_num = self.tubes[source] + self.tubes[dest]
+        if move_num != 0:
+            self.history.append(Record(source,dest,move_num))
+
+    def redo(self):
+        '''Redo last move'''
+        if(len(self.history) == 0):
+            return
+        history = self.history.pop()
+        source = self.tubes[history.source]
+        dest = self.tubes[history.dest]
+        source.liquid_count += history.num
+        dest.liquid_count -= history.num
+
+        for i in range(history.num):
+            source.liquid.append(dest.liquid.pop())
 
     def is_finished(self) -> bool:
         '''Return True if the scence is finished'''
@@ -158,6 +186,25 @@ class Scence:
             if not each.is_finished():
                 return False
         return True
+    
+class Record:
+    __slots__ = ['source','dest','num']
+    def __init__(self,source:int,dest:int,num:int):
+        '''
+        Record of move history
+        source:liquid from which tube
+        dest:liquid move to which tube
+        num:move number of liquid
+        '''
+        if not isinstance(source,int):
+            raise TypeError(f"Source of record must be int, but get {type(source)}")
+        if not isinstance(dest,int):
+            raise TypeError(f"Dest of record must be int, but get {type(dest)}")
+        if not isinstance(num,int):
+            raise TypeError(f"Num of record must be int, but get {type(num)}")
+        self.source = source
+        self.dest = dest
+        self.num = num
     
 def ignore():
     pass
