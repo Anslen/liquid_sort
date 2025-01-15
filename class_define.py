@@ -1,5 +1,6 @@
-from random import randint
 from random import shuffle
+from pathlib import Path
+import pygame
 
 class Color:
     __slots__ = ["data"]
@@ -157,3 +158,41 @@ class Scence:
             if not each.is_finished():
                 return False
         return True
+    
+def ignore():
+    pass
+    
+class Button(pygame.sprite.Sprite):
+    __slots__ = ['image','rect','func','base']
+    def __init__(self,image:Path|pygame.Surface,position:tuple[int],base:Path,func=ignore):
+        '''
+        表示按钮的类
+        image:图标,文件的存放位置或对应Surface对象
+        rect:按钮的位置
+        base:根目录
+        func:按钮被点击时执行的函数,默认什么都不做
+        '''
+        if isinstance(image,(str,Path)):
+            self.image = pygame.image.load(image)
+            #根据图片类型进行转换
+            try:
+                self.image.convert_alpha()
+            except:
+                self.image.convert()
+        else:
+            self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.left,self.rect.top = position
+        self.base = base
+        self.func = func
+        pygame.sprite.Sprite.__init__(self)
+        self.mask = pygame.mask.from_surface(self.image)
+
+
+    def check(self) -> bool:
+        '''
+        检查鼠标是否在按钮上
+        '''
+        posi = pygame.mouse.get_pos()
+        collide_point = Button(self.base/"collide_point.png",posi,None)
+        return pygame.sprite.collide_mask(self,collide_point)
